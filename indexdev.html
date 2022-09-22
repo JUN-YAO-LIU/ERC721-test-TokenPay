@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Number Token</title>
+    <script language="javascript" type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.6.1/web3.min.js"
+        integrity="sha512-5erpERW8MxcHDF7Xea9eBQPiRtxbse70pFcaHJuOhdEBQeAxGQjUwgJbuBDWve+xP/u5IoJbKjyJk50qCnMD7A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+        crossorigin="anonymous"></script>
+    <script language="javascript" type="text/javascript" src="/shareTokenABI.js"></script>
+</head>
+
+<body>
+    <div class="container mt-2">
+        <div class="card text-center">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-pills">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab"
+                            data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home"
+                            aria-selected="true">購買NFT</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="nav-profile-tab" data-bs-toggle="tab" data-bs-target="#nav-profile"
+                            type="button" role="tab" aria-controls="nav-profile" aria-selected="false">輸入分享地址</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="nav-contact-tab" data-bs-toggle="tab" data-bs-target="#nav-contact"
+                            type="button" role="tab" aria-controls="nav-contact" aria-selected="false">取得分享地址</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
+                        <button id="btnBuyNFT" onclick="btnBuyNFT();">購買NFT</button>
+                    </div>
+                    <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">
+                        <input id="shareAddress" type="text" placeholder="好友地址" value="" />
+                        <button id="btnShare" onclick="btnShare();">輸入分享地址</button>
+                    </div>
+                    <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab">
+                        <button id="btnGetAddrToShare" onclick="btnGetAddrToShare();">取得分享地址</button>
+                        <button type="button" onclick="copyEvent('userAddress')">Copy</button>
+                        <h2>Account: <span id="userAddress"></span></h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="btnTest" onclick="btnTest();">testEvent</button>
+
+    <script type="text/javascript">
+        const CONTRACT_ADDRESS = "0x90F8167CE18D9455dcA8F0F99194CBE1EFC5016F";
+        window.userAddress = null;
+
+        window.onload = async () => {
+            // Init Web3 connected to ETH network
+            if (window.ethereum) {
+                window.web3 = new Web3(window.ethereum);
+            } else {
+                alert("No ETH brower extension detected.");
+            }
+
+            // Load in Localstore key
+            window.userAddress = window.localStorage.getItem("userAddress");
+            //showAddress();
+        };
+
+        // ## ------------------------button event------------------------
+        function btnBuyNFT() {
+            //check if he already logined the account
+            if (checkLoginETH()) {
+                let price = "0.0035";
+                mintTokenId(price);
+            }
+        }
+
+        function btnShare() {
+            if (checkLoginETH()) {
+                let shareAddress = document.getElementById("shareAddress").value;
+                let discountETH = "0.002";
+                mintReducePriceToken(shareAddress, discountETH);
+            }
+        }
+
+        function btnGetAddrToShare() {
+            if (checkLoginETH()) {
+                showAddress();
+            }
+        }
+
+        function btnTest() {
+            if (checkLoginETH()) {
+                testEvent();
+            }
+        }
+        // ## ------------------------function------------------------
+        // remove stored user address and reset frontend
+        function logout() {
+            window.userAddress = null;
+            window.localStorage.removeItem("userAddress");
+            showAddress();
+        }
+
+        function showAddress() {
+            if (!window.userAddress) {
+                document.getElementById("userAddress").innerText = "";
+                //document.getElementById("logoutButton").classList.add("hidden");
+                return false;
+            }
+
+            document.getElementById(
+                "userAddress"
+            ).innerText = `${window.userAddress}`;
+            //document.getElementById("logoutButton").classList.remove("hidden");
+        }
+
+        async function checkLoginETH() {
+            let result = false;
+            //新偵測browser有沒有 ETH
+            if (window.web3) {
+                try {
+                    const selectedAccount = await window.ethereum
+                        .request({
+                            method: "eth_requestAccounts",
+                        })
+                        .then((accounts) => accounts[0])
+                        .catch(() => {
+                            throw Error("No account selected!");
+                        });
+                    window.userAddress = selectedAccount;
+                    //存在localstorage
+                    window.localStorage.setItem("userAddress", selectedAccount);
+                    //showAddress();
+                    result = true;
+                } catch (error) {
+                    console.error(error);
+                }
+            } else {
+                alert("No ETH brower extension detected.");
+            }
+            return result;
+        }
+
+        //要多加上 交易玩得回傳
+        async function mintTokenId(price) {
+            const contract = new window.web3.eth.Contract(shareTokenABI, CONTRACT_ADDRESS);
+            const symbol = await contract.methods
+                .mintTokenId()
+                .send({ from: window.userAddress, value: web3.utils.toWei(price, "ether") })
+                .on("receipt", function (receipt) {
+                    console.log("Success pay");
+                })
+                .on("error", function (error) {
+                    console.log("Fail");
+                });
+            alert(`Contract ${CONTRACT_ADDRESS} Symbol: ${symbol}`);
+        }
+
+        async function mintReducePriceToken(friendAddr, discountPrice) {
+            const contract = new window.web3.eth.Contract(shareTokenABI, CONTRACT_ADDRESS);
+            const symbol = await contract.methods
+                .mintReducePriceToken(friendAddr)
+                .send({ from: window.userAddress, value: web3.utils.toWei(discountPrice, "ether") })
+                .on("receipt", function (receipt) {
+                    console.log("Success pay");
+                })
+                .on("error", function (error) {
+                    console.log("Fail");
+                });
+            alert(`Contract ${CONTRACT_ADDRESS} Symbol: ${symbol}`);
+        }
+
+        async function testEvent() {
+            const contract = new window.web3.eth.Contract(shareTokenABI, CONTRACT_ADDRESS);
+            const symbol = await contract.methods
+                .testEvent()
+                .call({ from: window.userAddress });
+            //uaually call function
+            let testEvent = contract.events.Log({}, { fromBlock: 0, toBlock: 'latest' }).on(
+                'data', function (event) {
+                    //console.log(event);
+                    //console.log(event['address']);
+                    alertTestMsg = event.returnValues['message'];
+                    //console.log(alertTestMsg);
+                    alert(`Jim test Event ${alertTestMsg}`);
+                }).on('error', console.error);
+            //console.log(testEvent);
+        }
+    // ## ------------------------Listen Event------------------------
+
+    </script>
+
+    <script type="text/javascript">
+        async function copyEvent(id) {
+            var str = document.getElementById(id);
+            window.getSelection().selectAllChildren(str);
+            document.execCommand("Copy")
+        }
+    </script>
+</body>
+
+</html>
